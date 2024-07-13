@@ -4,7 +4,7 @@ from sqlalchemy import orm
 
 from models.base import Base
 
-from bot.data.config import DATABASE_URL
+from data.config import DATABASE_URL
 
 
 def create_db_connection():
