@@ -3,7 +3,7 @@ from aiogram.fsm.context import FSMContext
 from datetime import datetime
 from database.user import create_user
 
-from bot.data.config import ADMIN
+from data.config import ADMIN
 
 
 async def start_handler(message: types.Message, state: FSMContext):
