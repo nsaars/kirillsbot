@@ -21,9 +21,9 @@ def authenticate():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
-        else:
+        """else:
             flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+            creds = flow.run_local_server(port=0)"""
         # Сохраняем токен для следующего использования
         with open('token.json', 'wb') as token:
             pickle.dump(creds, token)
