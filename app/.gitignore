@@ -131,3 +131,6 @@ dmypy.json
 .idea/
 .ruff_cache/
 .vscode/
+
+
+credentials.json
