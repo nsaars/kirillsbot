@@ -6,6 +6,8 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
+from data.config import CREDENTIALS
+
 # Если изменяются области доступа, удалите файл token.json
 SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/documents']
 
@@ -21,9 +23,9 @@ def authenticate():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
-        """else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)"""
+        else:
+            flow = InstalledAppFlow.from_client_config(CREDENTIALS, SCOPES)
+            creds = flow.run_local_server(port=0)
         # Сохраняем токен для следующего использования
         with open('token.json', 'wb') as token:
             pickle.dump(creds, token)
@@ -43,30 +45,17 @@ def create_document():
     print(f'Created document with title: {doc.get("title")} and ID: {doc.get("documentId")}')
 
 
-def get_first_empty_line(document_id, service=None):
-    """Функция для получения номера первой пустой строки в документе Google Docs"""
-    if not service:
-        creds = authenticate()
-        service = build('docs', 'v1', credentials=creds)
-    document = service.documents().get(documentId=document_id).execute()
-    content = document.get('body').get('content')
-
-    for i, element in enumerate(content):
-        if 'paragraph' in element:
-            paragraph = element['paragraph']
-            if not paragraph.get('elements'):  # Если нет элементов, параграф пустой
-                return i + 1  # Номера строк начинаются с 1
-
-    return len(content) + 1  # Если все строки заполнены, возвращаем следующую строку
-
-
 def add_text_to_document(document_id, text, index=None, service=None):
     """Функция для добавления текста на новую пустую строку в документ Google Docs"""
     if not service:
         creds = authenticate()
         service = build('docs', 'v1', credentials=creds)
+
     if not index:
-        index = get_first_empty_line(document_id)
+        document = service.documents().get(documentId=document_id).execute()
+        content = document.get('body').get('content', [])
+        index = content[-1]['endIndex'] - 1 if content else 1
+
     requests = [
         {
             'insertText': {
@@ -78,5 +67,4 @@ def add_text_to_document(document_id, text, index=None, service=None):
         }
     ]
     result = service.documents().batchUpdate(documentId=document_id, body={'requests': requests}).execute()
-    new_index = index + len(text) + 1  # +1 для символа новой строки
-    return new_index
+    return result

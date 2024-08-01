@@ -9,6 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 import handlers
 from data import config
+from utils.ai_assistant.ai_assistant import AiAssistant
 
 
 def setup_handlers(dp: Dispatcher) -> None:
@@ -28,13 +29,12 @@ async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await setup_aiogram(dispatcher)
 
 
-
 async def aiogram_on_shutdown_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await bot.session.close()
     await dispatcher.storage.close()
 
 
-def main() -> None:
+if __name__ == "__main__":
     session = AiohttpSession(
         json_loads=orjson.loads,
     )
@@ -50,10 +50,7 @@ def main() -> None:
     dp = Dispatcher(
         storage=storage,
     )
+
     dp.startup.register(aiogram_on_startup_polling)
     dp.shutdown.register(aiogram_on_shutdown_polling)
     asyncio.run(dp.start_polling(bot))
-
-
-if __name__ == "__main__":
-    main()
