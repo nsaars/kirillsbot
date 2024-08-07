@@ -16,8 +16,6 @@ from langchain_core.prompts import ChatPromptTemplate
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
-os.path.join(current_dir, "text-embedding-3-small")
-
 
 class AiQuestionAnswering:
     def __init__(self, llm: str = "gpt-4o-mini",
@@ -69,7 +67,8 @@ class AiQuestionAnswering:
 
         question_template = ChatPromptTemplate(
             [self._system_prompt] + history +
-            [('user', """База знаний для ответа на вопрос:\n{context}\n\nВопрос клиента: {message}""")])
+            [('user', self._prompt_templates['qa_question'] +
+              """База знаний для ответа на вопрос:\n{context}\n\nВопрос клиента: {message}""")])
 
         return {'question_response': await (
                 {"context": self._retriever | self.format_docs, "message": RunnablePassthrough()}
@@ -116,10 +115,8 @@ class AiTypeDetector:
         self._system_prompt = ("system", self._prompt_templates['td_system'])
 
     async def get_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict[str, str]:
-        history_string = self._format_history(history)
         prompt_template = ChatPromptTemplate(
-            [self._system_prompt,
-             f"История твоего чата с клиентом:\n\n{history_string}\n\nНовое сообщение клиента:\n{text}"]
+            history + [self._system_prompt, ("user", "{message}")]
         )
         return {'type': await ({"message": RunnablePassthrough()}
                                | prompt_template
@@ -191,8 +188,3 @@ class AiChain:
                 cls.responses.update(response)
                 if cls.decision and cls.responses.get(cls.decision):
                     return cls.responses[cls.decision]
-
-
-if __name__ == '__main__':
-    qa = AiQuestionAnswering()
-    qa.test()

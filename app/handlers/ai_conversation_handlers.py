@@ -7,8 +7,7 @@ from utils.ai_assistant.ai_assistant import AiChain
 
 async def ai_conversation_handler(message: types.Message, state: FSMContext):
     if message.content_type != "text":
-        await message.answer("Меня настроили отвечать только на текстовые сообщения."
-                             " Могу ли я помочь вам с чем-то, касающимся ИИ ботов и их возможностей?")
+        await message.answer("Меня настроили отвечать только на текстовые сообщения :)")
         return
 
     history: list = (await state.get_data()).get('history') or []
