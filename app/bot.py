@@ -9,7 +9,6 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 import handlers
 from data import config
-from utils.ai_assistant.ai_assistant import AiAssistant
 
 
 def setup_handlers(dp: Dispatcher) -> None:

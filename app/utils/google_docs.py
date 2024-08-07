@@ -1,7 +1,6 @@
 import os
 import pickle
-import google.auth.transport.requests
-from google.oauth2.credentials import Credentials
+
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -17,6 +16,7 @@ def authenticate():
     creds = None
     # Файл token.json хранит токен доступа пользователя
     if os.path.exists('token.json'):
+        print('123123')
         with open('token.json', 'rb') as token:
             creds = pickle.load(token)
     # Если нет действительного токена, проходим процесс авторизации
