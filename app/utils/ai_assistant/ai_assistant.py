@@ -69,7 +69,7 @@ class AiQuestionAnswering:
 
         question_template = ChatPromptTemplate(
             [self._system_prompt] + history +
-            [('user', """Контекстные данные:\n{context}\n\nВопрос клиента: {message}""")])
+            [('user', """База знаний для ответа на вопрос:\n{context}\n\nВопрос клиента: {message}""")])
 
         return {'question_response': await (
                 {"context": self._retriever | self.format_docs, "message": RunnablePassthrough()}
