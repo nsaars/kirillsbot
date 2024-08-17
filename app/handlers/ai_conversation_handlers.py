@@ -1,8 +1,12 @@
+
 from aiogram import types
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 
-from utils.ai_assistant.ai_assistant import AiChain
+from database.crud.message import create_message
+from database.crud.state import update_state
+from utils.ai_assistant.ai_chain import AiChain
+from utils.utils import send_consultation_request
 
 
 async def ai_conversation_handler(message: types.Message, state: FSMContext):
@@ -10,7 +14,19 @@ async def ai_conversation_handler(message: types.Message, state: FSMContext):
         await message.answer("Меня настроили отвечать только на текстовые сообщения :)")
         return
 
-    history: list = (await state.get_data()).get('history') or []
-    response: str = await AiChain.get_proper_response(message.text, history)
-    await state.update_data({'history': history + [('user', message.text), ('assistant', response)]})
-    await message.answer(response, parse_mode=ParseMode.MARKDOWN)
+    state_data = await state.get_data()
+
+    history: list = state_data.get('history') or []
+    response: dict = await AiChain.get_proper_response(message.text, history)
+
+    await state.update_data({'history': history + [('user', message.text), ('assistant', response.get('text'))]})
+    update_state(state_data.get('db_state_id'),
+                 {'title': 'ai_conversation', 'data': await state.get_data()})  # todo: custom fsm context
+    create_message(state_data.get('db_user_id'), 'user', message.text)
+    create_message(state_data.get('db_user_id'), 'assistant', response.get('text'), response.get('type'))
+
+    await message.answer(response.get('text'), parse_mode=ParseMode.MARKDOWN)
+
+    kwargs = response.get('schedule_consultation_kwargs')
+    if kwargs and response.get('success'):
+        await send_consultation_request(message.bot, state_data.get('db_user_id'), history, **kwargs)

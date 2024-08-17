@@ -1,24 +1,27 @@
 from aiogram import types
 from aiogram.fsm.context import FSMContext
-from datetime import datetime
-from database.user import create_user
+
+from database.crud.state import create_state, update_state
+from database.crud.user import create_user
 
 from data.config import ADMIN
-
-from utils.google_docs import add_text_to_document
-
-from data.config import DOCUMENT_ID
 
 
 async def start_handler(message: types.Message, state: FSMContext):
     from_user = message.from_user
 
-    await message.answer(f"Здравствуйте, {from_user.full_name}, наш менеджер уже получил заявку и скоро свяжется с Вами!")
-    await message.answer("Пока что можете задавать вопросы нашему ии чат боту. Просто напишите свой вопрос.")
-    await state.set_state('ai_conversation')
-    await message.bot.send_message(ADMIN, f"Новая заявка от @{from_user.username} ({from_user.full_name}).")
+    db_user = create_user(from_user.id, from_user.username, from_user.full_name)
+    db_state = create_state(db_user.id, await state.get_state(), await state.get_data())
 
-    create_user(from_user.id, from_user.username, from_user.full_name)
-    add_text_to_document(DOCUMENT_ID, f"Заявка: @{from_user.username} ({from_user.full_name})."
-                                      f" Дата подачи заявки: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-                         index=None, service=None)
+    greeting_text = f"Здравствуйте, {from_user.full_name}, я виртуальный ассистент компании Quasar79.\n" \
+                    f"Расскажите, пожалуйста, для чего вам нужен ИИ ассистент/чат бот?\n\n" \
+                    f"Например: 'Мне нужен чат бот для моего отеля, чтоб он отвечал клиентам на вопросы и бронировал " \
+                    f"для них номера.' "
+
+    await message.answer(greeting_text)
+
+    await state.update_data({'history': [('assistant', greeting_text)], 'db_state_id': db_state.id,
+                             'db_user_id': db_user.id})
+    await state.set_state('ai_conversation')
+    update_state(db_state.id, {'title': 'ai_conversation', 'data': await state.get_data()})  # todo: custom fsm context
+    await message.bot.send_message(ADMIN, f"@{from_user.username} ({from_user.full_name}) написал в бота.")

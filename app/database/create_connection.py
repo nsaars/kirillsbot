@@ -15,3 +15,4 @@ def create_db_connection():
 
 
 SessionLocal = create_db_connection()
+session = SessionLocal()
