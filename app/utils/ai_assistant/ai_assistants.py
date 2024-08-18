@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 from typing import List, Tuple, Dict
 import pandas as pd
-import locale
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain_openai import ChatOpenAI
@@ -16,7 +15,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from utils.ai_assistant.tools import get_tools
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-locale.setlocale(locale.LC_TIME, "ru_RU")
 
 
 class AiQuestionAnswering:
@@ -53,12 +51,16 @@ class AiQuestionAnswering:
     @staticmethod
     def get_formatted_datetime():
         now = datetime.now()
-        weekday_name = now.strftime("%A")
+        weekday = now.weekday()
+        days = {
+            0: "понедельник", 1: "вторник", 2: "среда", 3: "четверг",
+            4: "пятница", 5: "суббота", 6: "воскресенье"
+        }
         formatted_date = now.strftime("%Y-%m-%d")
         formatted_time = now.strftime("%H:%M")
         if now.hour > 18:
             formatted_time = "уже" + formatted_time
-        return weekday_name + ", " + formatted_date, formatted_time
+        return days[weekday] + ", " + formatted_date, formatted_time
 
     async def get_default_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
         if history is None:
