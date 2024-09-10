@@ -43,17 +43,17 @@ async def set_all_states(dp): #  temp function
     users = get_all_users()
     for state in states:
         for user_ in users:
-            if user_['id'] == state['user_id']:
+            if user_.id == state.user_id:
                 user = user_
                 break
         else:
             continue
 
         user_state = FSMContext(storage=dp.storage,
-                                key={"user_id": user['telegram_id'],
-                                     "chat_id": user['telegram_id']})
-        await user_state.set_state(state['title'])
-        await user_state.set_data(state['data'])
+                                key={"user_id": user.telegram_id,
+                                     "chat_id": user.telegram_id})
+        await user_state.set_state(state.title)
+        await user_state.set_data(state.data)
 
 
 if __name__ == "__main__":
