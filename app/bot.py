@@ -6,6 +6,7 @@ from aiogram.client.bot import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.base import StorageKey
 from aiogram.fsm.storage.memory import MemoryStorage
 
 import handlers
@@ -48,10 +49,9 @@ async def set_all_states(dp): #  temp function
                 break
         else:
             continue
-
+        user_storage_key = StorageKey(bot.id, user.telegram_id, user.telegram_id)
         user_state = FSMContext(storage=dp.storage,
-                                key={"user_id": user.telegram_id,
-                                     "chat_id": user.telegram_id})
+                                key=user_storage_key)
         await user_state.set_state(state.title)
         await user_state.set_data(state.data)
 
