@@ -26,3 +26,6 @@ def update_state(state_id: int, update_data: dict) -> State:
     session.commit()
     session.refresh(state)  # нужен ли он тут?
     return state
+
+def get_all_states():
+    return session.query(State).all()

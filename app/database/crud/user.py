@@ -19,3 +19,6 @@ def create_user(telegram_id: int, telegram_username: str, telegram_name: str):
         session.refresh(new_user)
         return new_user
     return user
+
+def get_all_users():
+    return session.query(User).all()
