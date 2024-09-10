@@ -53,7 +53,9 @@ async def set_all_states(dp): #  temp function
         user_state = FSMContext(storage=dp.storage,
                                 key=user_storage_key)
         await user_state.set_state(state.title)
-        await user_state.set_data(state.data)
+        data = state.data
+        data['history'] = list(map(tuple, data['history']))
+        await user_state.set_data(data)
 
 
 if __name__ == "__main__":
