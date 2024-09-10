@@ -15,7 +15,7 @@ async def ai_conversation_handler(message: types.Message, state: FSMContext):
         return
 
     state_data = await state.get_data()
-
+    print(state_data)
     history: list = state_data.get('history') or []
     response: dict = await AiChain.get_proper_response(message.text, history)
 
@@ -24,7 +24,6 @@ async def ai_conversation_handler(message: types.Message, state: FSMContext):
                  {'title': 'ai_conversation', 'data': await state.get_data()})  # todo: custom fsm context
     create_message(state_data.get('db_user_id'), 'user', message.text)
     create_message(state_data.get('db_user_id'), 'assistant', response.get('text'), response.get('type'))
-    print(await state.get_data())
     await message.answer(response.get('text'), parse_mode=ParseMode.MARKDOWN)
 
     kwargs = response.get('schedule_consultation_kwargs')
