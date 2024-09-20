@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from pprint import pprint
 from typing import List, Tuple, Dict
 import pandas as pd
 from langchain.embeddings import CacheBackedEmbeddings
@@ -35,7 +36,6 @@ class AiQuestionAnswering:
                       self._df.iterrows()]
         self._vectorstore = Chroma.from_documents(documents=self._docs, embedding=self._cached_embedder)
         self._retriever = self._vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": search_quantity})
-
         with open(prompt_templates_file_path, "r", encoding='utf-8') as f:
             self._prompt_templates = json.load(f)
 
@@ -46,6 +46,7 @@ class AiQuestionAnswering:
 
     @staticmethod
     def format_docs(similar_docs: List[Document]) -> str:
+        pprint(similar_docs)
         return "\n\n".join(f"Вопрос:{doc.page_content}\nОтвет:{doc.metadata['answer']}" for doc in similar_docs)
 
     @staticmethod
