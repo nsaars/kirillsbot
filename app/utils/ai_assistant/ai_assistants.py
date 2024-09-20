@@ -7,7 +7,7 @@ from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import LocalFileStore
 from langchain_openai import ChatOpenAI
 from langchain_chroma import Chroma
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
@@ -84,11 +84,16 @@ class AiQuestionAnswering:
             [self._system_prompt] +
             history + [('user', self._prompt_templates['qa_question'] +
                         """База знаний для ответа на вопрос:\n{context}\n\nВопрос клиента: {message}""")])
+        embedding_text = (await AiHelpers().get_proper_question(text, history)).get('embedding_text')
+        context_docs = await self._retriever.ainvoke(embedding_text)
+
+        formatted_context = RunnableLambda(lambda x: self.format_docs(context_docs))
         response = await (
-                {"context": self._retriever | self.format_docs, "message": RunnablePassthrough()}
+                {"context": formatted_context, "message": RunnablePassthrough()}
                 | question_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
         ).ainvoke(text)
+
         return {'question_response': response}
 
     async def get_bad_words_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
@@ -146,6 +151,18 @@ class AiHelpers:
                                   | self._llm
                                   ).ainvoke(
             f"'{self._prompt_templates['summary']}\nИстория чата с клиентом:\n{history_text}'")}
+
+    async def get_proper_question(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
+        prompt_template = ChatPromptTemplate(
+            history + [('user', "{message}"), ("system", self._prompt_templates['change_question_system']), ("user", self._prompt_templates['change_question'])])
+
+        response = await (
+                {"message": RunnablePassthrough()}
+                | prompt_template
+                | self._llm
+        ).ainvoke(text)
+
+        return {'embedding_text': response.content}
 
     @staticmethod
     def _format_history(history: List[Tuple[str, str]]) -> str:
