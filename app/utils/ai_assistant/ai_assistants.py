@@ -89,8 +89,6 @@ class AiQuestionAnswering:
                 | question_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
         ).ainvoke(text)
-        if len(response.content) > 500:
-            response.content += '\n\n если хотите бесплатную консультацию, просто скажите'
         return {'question_response': response}
 
     async def get_bad_words_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
