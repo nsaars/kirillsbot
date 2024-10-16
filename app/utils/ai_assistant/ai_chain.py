@@ -19,12 +19,14 @@ class AiChain:
 
     @classmethod
     async def get_responses(cls, text: str, history: List[Tuple[str, str]] = None):
+        new_request = cls.helpers.get_new_request(text, history)
+
         tasks = [
             asyncio.create_task(cls.helpers.get_message_type(text, history)),
-            asyncio.create_task(cls.qa.get_question_response(text, history)),
-            asyncio.create_task(cls.qa.get_default_response(text, history)),
-            asyncio.create_task(cls.qa.get_bad_words_response(text, history)),
-            asyncio.create_task(cls.qa.get_humor_response(text, history)),
+            asyncio.create_task(cls.qa.get_question_response(text, history, new_request)),
+            asyncio.create_task(cls.qa.get_default_response(text, history, new_request)),
+            asyncio.create_task(cls.qa.get_bad_words_response(text, history, new_request)),
+            asyncio.create_task(cls.qa.get_humor_response(text, history, new_request)),
         ]
 
         for completed_task in asyncio.as_completed(tasks):

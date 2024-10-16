@@ -63,22 +63,21 @@ class AiQuestionAnswering:
             formatted_time = "уже" + formatted_time
         return days[weekday] + ", " + formatted_date, formatted_time
 
-    async def get_default_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
+    async def get_default_response(self, text: str, history: List[Tuple[str, str]] = None, new_request = None) -> Dict:
         if history is None:
             history = []
-        new_request = await AiHelpers().get_new_request(text, history)
 
         default_template = ChatPromptTemplate(
             [self._system_prompt]
             + history + [('user', "{message}")])
 
         return {'default_response': await (
-                {"message": RunnablePassthrough(), 'language': new_request['previous_language']}
+                {"message": RunnablePassthrough(), 'language': RunnableLambda(new_request['previous_language'])}
                 | default_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(new_request['new_request'])}
+        ).ainvoke(text)}
 
-    async def get_question_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
+    async def get_question_response(self, text: str, history: List[Tuple[str, str]] = None, new_request = None) -> Dict:
         if history is None:
             history = []
 
@@ -86,47 +85,44 @@ class AiQuestionAnswering:
             [self._system_prompt] +
             history + [('user', self._prompt_templates['qa_question'] +
                         """База знаний для ответа на вопрос:\n{context}\n\nВопрос клиента: {message}""")])
-        new_request = await AiHelpers().get_new_request(text, history)
         context_docs = await self._retriever.ainvoke(new_request['new_request'])
 
         formatted_context = RunnableLambda(lambda x: self.format_docs(context_docs))
         response = await (
-                {"context": formatted_context, "message": RunnablePassthrough(), 'language': new_request['previous_language']}
+                {"context": formatted_context, "message": RunnablePassthrough(), "language":RunnableLambda(new_request['previous_language'])}
                 | question_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
         ).ainvoke(new_request['new_request'])
 
         return {'question_response': response}
 
-    async def get_bad_words_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
+    async def get_bad_words_response(self, text: str, history: List[Tuple[str, str]] = None, new_request = None) -> Dict:
         if history is None:
             history = []
-        new_request = await AiHelpers().get_new_request(text, history)
 
         bad_words_template = ChatPromptTemplate(
             [self._system_prompt] +
             history + [("user", self._prompt_templates['qa_bad_words'])])
 
         return {'bad_words_response': await (
-                {"message": RunnablePassthrough(), 'language': new_request['previous_language']}
+                {"message": RunnablePassthrough(), 'language': RunnableLambda(new_request['previous_language'])}
                 | bad_words_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(new_request['new_request'])}
+        ).ainvoke(text)}
 
-    async def get_humor_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
+    async def get_humor_response(self, text: str, history: List[Tuple[str, str]] = None, new_request = None) -> Dict:
         if history is None:
             history = []
-        new_request = await AiHelpers().get_new_request(text, history)
 
         humor_template = ChatPromptTemplate(
             [self._system_prompt] +
             history + [("user", self._prompt_templates['qa_humor'])])
 
         return {'humor_response': await (
-                {"message": RunnablePassthrough(), 'language': new_request['previous_language']}
+                {"message": RunnablePassthrough(), 'language': RunnableLambda(new_request['previous_language'])}
                 | humor_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(new_request['new_request'])}
+        ).ainvoke(text)}
 
 
 class AiHelpers:
