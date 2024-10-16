@@ -163,6 +163,8 @@ class AiHelpers:
 
         prompt_template = ChatPromptTemplate.from_messages([
             MessagesPlaceholder('chat_history'),
+            ('user', '{input}'),
+
             ('system', self._prompt_templates['default_system']),
             ('user', self._prompt_templates['change_question'])
         ])
