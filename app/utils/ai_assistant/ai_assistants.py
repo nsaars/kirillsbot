@@ -168,8 +168,8 @@ class AiHelpers:
         ])
 
         class RequestModel(BaseModel):
-            new_request: str = Field(description="Изменённый запрос")
-            previous_language: str = Field(description="Язык первоначального запроса (до изменения).")
+            new_request: str = Field(description="Новый, изменённый запрос")
+            previous_language: str = Field(description="Язык на котором клиент написал сообщение.")
 
         response = await (prompt_template
                           | self._llm.with_structured_output(RequestModel)
