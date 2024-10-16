@@ -165,10 +165,9 @@ class AiHelpers:
             MessagesPlaceholder('chat_history'),
             ('user', '{input}'),
 
-            ('system', self._prompt_templates['default_system']),
+            ('system', self._prompt_templates['change_question_system']),
             ('user', self._prompt_templates['change_question'])
         ])
-        print(prompt_template.invoke({'input': text, 'chat_history': history}))
         class RequestModel(BaseModel):
             new_request: str = Field(description="Новый, изменённый запрос")
             previous_language: str = Field(description="Язык на котором клиент/юзер написал своё последнее сообщение.")
