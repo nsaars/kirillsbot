@@ -11,8 +11,8 @@ from langchain_chroma import Chroma
 from langchain_core.runnables import RunnablePassthrough, RunnableLambda
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
-
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from pydantic import BaseModel, Field
 from utils.ai_assistant.tools import get_tools
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -66,16 +66,17 @@ class AiQuestionAnswering:
     async def get_default_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
         if history is None:
             history = []
+        new_request = await AiHelpers().get_new_request(text, history)
 
         default_template = ChatPromptTemplate(
             [self._system_prompt]
             + history + [('user', "{message}")])
 
         return {'default_response': await (
-                {"message": RunnablePassthrough()}
+                {"message": RunnablePassthrough(), 'language': new_request['previous_language']}
                 | default_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(text)}
+        ).ainvoke(new_request['new_request'])}
 
     async def get_question_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
         if history is None:
@@ -85,45 +86,47 @@ class AiQuestionAnswering:
             [self._system_prompt] +
             history + [('user', self._prompt_templates['qa_question'] +
                         """База знаний для ответа на вопрос:\n{context}\n\nВопрос клиента: {message}""")])
-        embedding_text = (await AiHelpers().get_proper_question(text, history)).get('embedding_text')
-        context_docs = await self._retriever.ainvoke(embedding_text)
+        new_request = await AiHelpers().get_new_request(text, history)
+        context_docs = await self._retriever.ainvoke(new_request['new_request'])
 
         formatted_context = RunnableLambda(lambda x: self.format_docs(context_docs))
         response = await (
-                {"context": formatted_context, "message": RunnablePassthrough()}
+                {"context": formatted_context, "message": RunnablePassthrough(), 'language': new_request['previous_language']}
                 | question_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(text)
+        ).ainvoke(new_request['new_request'])
 
         return {'question_response': response}
 
     async def get_bad_words_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
         if history is None:
             history = []
+        new_request = await AiHelpers().get_new_request(text, history)
 
         bad_words_template = ChatPromptTemplate(
             [self._system_prompt] +
             history + [("user", self._prompt_templates['qa_bad_words'])])
 
         return {'bad_words_response': await (
-                {"message": RunnablePassthrough()}
+                {"message": RunnablePassthrough(), 'language': new_request['previous_language']}
                 | bad_words_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(text)}
+        ).ainvoke(new_request['new_request'])}
 
     async def get_humor_response(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
         if history is None:
             history = []
+        new_request = await AiHelpers().get_new_request(text, history)
 
         humor_template = ChatPromptTemplate(
             [self._system_prompt] +
             history + [("user", self._prompt_templates['qa_humor'])])
 
         return {'humor_response': await (
-                {"message": RunnablePassthrough()}
+                {"message": RunnablePassthrough(), 'language': new_request['previous_language']}
                 | humor_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(text)}
+        ).ainvoke(new_request['new_request'])}
 
 
 class AiHelpers:
@@ -153,17 +156,30 @@ class AiHelpers:
                                   ).ainvoke(
             f"'{self._prompt_templates['summary']}\nИстория чата с клиентом:\n{history_text}'")}
 
-    async def get_proper_question(self, text: str, history: List[Tuple[str, str]] = None) -> Dict:
-        prompt_template = ChatPromptTemplate(
-            history + [('user', "{message}"), ("system", self._prompt_templates['change_question_system']), ("user", self._prompt_templates['change_question'])])
+    async def get_new_request(self, text: str, history: List[Tuple[str, str]]) -> Dict[str, str]:
+        """
+        Modify the user's input if necessary.
+        """
+        if not text:
+            raise ValueError("Input text cannot be empty")
+        if not isinstance(history, list):
+            raise TypeError("History must be a list of tuples")
 
-        response = await (
-                {"message": RunnablePassthrough()}
-                | prompt_template
-                | self._llm
-        ).ainvoke(text)
+        prompt_template = ChatPromptTemplate.from_messages([
+            MessagesPlaceholder('chat_history'),
+            ('system', self._prompt_templates['default_system']),
+            ('user', self._prompt_templates['change_question'])
+        ])
 
-        return {'embedding_text': response.content}
+        class RequestModel(BaseModel):
+            new_request: str = Field(description="Изменённый запрос")
+            previous_language: str = Field(description="Язык первоначального запроса (до изменения).")
+
+        response = await (prompt_template
+                          | self._llm.with_structured_output(RequestModel)
+                          ).ainvoke({'input': text, 'chat_history': history})
+
+        return {'new_request': response.new_request, 'previous_language': response.previous_language}
 
     @staticmethod
     def _format_history(history: List[Tuple[str, str]]) -> str:
