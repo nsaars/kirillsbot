@@ -19,7 +19,7 @@ class AiChain:
 
     @classmethod
     async def get_responses(cls, text: str, history: List[Tuple[str, str]] = None):
-        new_request = cls.helpers.get_new_request(text, history)
+        new_request = await cls.helpers.get_new_request(text, history)
 
         tasks = [
             asyncio.create_task(cls.helpers.get_message_type(text, history)),
