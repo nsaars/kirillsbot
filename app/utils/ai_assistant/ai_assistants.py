@@ -92,7 +92,7 @@ class AiQuestionAnswering:
                 {"context": formatted_context, "message": RunnablePassthrough(), "language":RunnableLambda(lambda x : new_request['previous_language'])}
                 | question_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
-        ).ainvoke(new_request['new_request'])
+        ).ainvoke(text)
 
         return {'question_response': response}
 
@@ -166,10 +166,10 @@ class AiHelpers:
             ('system', self._prompt_templates['default_system']),
             ('user', self._prompt_templates['change_question'])
         ])
-
+        print(prompt_template.invoke({'input': text, 'chat_history': history}))
         class RequestModel(BaseModel):
             new_request: str = Field(description="Новый, изменённый запрос")
-            previous_language: str = Field(description="Язык на котором клиент написал своё последнее сообщение.")
+            previous_language: str = Field(description="Язык на котором клиент/юзер написал своё последнее сообщение.")
 
         response = await (prompt_template
                           | self._llm.with_structured_output(RequestModel)
