@@ -72,7 +72,7 @@ class AiQuestionAnswering:
             + history + [('user', "{message}")])
 
         return {'default_response': await (
-                {"message": RunnablePassthrough(), 'language': RunnableLambda(new_request['previous_language'])}
+                {"message": RunnablePassthrough(), 'language': RunnableLambda(lambda x : new_request['previous_language'])}
                 | default_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
         ).ainvoke(text)}
@@ -89,7 +89,7 @@ class AiQuestionAnswering:
 
         formatted_context = RunnableLambda(lambda x: self.format_docs(context_docs))
         response = await (
-                {"context": formatted_context, "message": RunnablePassthrough(), "language":RunnableLambda(new_request['previous_language'])}
+                {"context": formatted_context, "message": RunnablePassthrough(), "language":RunnableLambda(lambda x : new_request['previous_language'])}
                 | question_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
         ).ainvoke(new_request['new_request'])
@@ -105,7 +105,7 @@ class AiQuestionAnswering:
             history + [("user", self._prompt_templates['qa_bad_words'])])
 
         return {'bad_words_response': await (
-                {"message": RunnablePassthrough(), 'language': RunnableLambda(new_request['previous_language'])}
+                {"message": RunnablePassthrough(), 'language': RunnableLambda(lambda x : new_request['previous_language'])}
                 | bad_words_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
         ).ainvoke(text)}
@@ -119,7 +119,7 @@ class AiQuestionAnswering:
             history + [("user", self._prompt_templates['qa_humor'])])
 
         return {'humor_response': await (
-                {"message": RunnablePassthrough(), 'language': RunnableLambda(new_request['previous_language'])}
+                {"message": RunnablePassthrough(), 'language': RunnableLambda(lambda x : new_request['previous_language'])}
                 | humor_template
                 | self._llm.bind(tools=get_tools(*self.get_formatted_datetime()))
         ).ainvoke(text)}
